@@ -27,7 +27,8 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<User> {
-    const { email, password, firstName, lastName, role } = registerDto;
+    const { email, password, firstName, lastName, phoneNumber, role } =
+      registerDto;
 
     // Check if user exists
     const userExists = await this.usersRepository.findOne({ where: { email } });
@@ -44,6 +45,7 @@ export class AuthService {
       password: hashedPassword,
       firstName,
       lastName,
+      phoneNumber,
       role,
     });
 
@@ -58,7 +60,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { email: user.email, sub: user.id };
+    const payload = { email: user.email, sub: user.id, role: user.role };
     return {
       accessToken: this.jwtService.sign(payload),
     };
@@ -88,7 +90,6 @@ export class AuthService {
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
     const { token, password } = resetPasswordDto;
-
 
     const user = await this.usersRepository.findOne({
       where: {

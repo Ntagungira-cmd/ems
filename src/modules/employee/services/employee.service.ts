@@ -5,8 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Employee } from '../entities/employee.entity';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/employee.dto';
+import { MailService } from 'src/modules/mail/mail.service';
 
 
 @Injectable()
@@ -14,13 +16,12 @@ export class EmployeesService {
   constructor(
     @InjectRepository(Employee)
     private employeeRepository: Repository<Employee>,
+    private mailService: MailService,
   ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Employee> {
     const existingEmployee = await this.employeeRepository.findOne({
-      where: [
-        { email: createEmployeeDto.email },
-      ],
+      where: [{ email: createEmployeeDto.email }],
     });
 
     if (existingEmployee) {
@@ -28,8 +29,20 @@ export class EmployeesService {
         'Employee with this email or identifier already exists',
       );
     }
+    const autoPassword = Math.random().toString(36).slice(-8);
+    const tempPassword = await bcrypt.hash(autoPassword, 10);
 
-    const employee = this.employeeRepository.create(createEmployeeDto);
+    const employee = this.employeeRepository.create({
+      ...createEmployeeDto,
+      isActive: true,
+      password: tempPassword,
+    });
+
+    await this.mailService.sendWelcomeEmail(
+      employee.email,
+      `${employee.firstName} ${employee.lastName}`,
+      autoPassword,
+    );
     return this.employeeRepository.save(employee);
   }
 
@@ -53,9 +66,7 @@ export class EmployeesService {
 
     if (updateEmployeeDto.email) {
       const existingEmployee = await this.employeeRepository.findOne({
-        where: [
-          { email: updateEmployeeDto.email },
-        ],
+        where: [{ email: updateEmployeeDto.email }],
       });
 
       if (existingEmployee && existingEmployee.id !== id) {

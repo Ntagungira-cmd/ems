@@ -23,6 +23,9 @@ export class User {
   lastName: string;
 
   @Column()
+  phoneNumber: string;
+
+  @Column()
   @Exclude()
   password: string;
 

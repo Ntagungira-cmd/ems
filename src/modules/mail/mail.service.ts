@@ -52,4 +52,17 @@ export class MailService {
       html,
     });
   }
+
+  async sendWelcomeEmail(to: string, name: string, autoPassword:string ): Promise<void> {
+    const html = await this.compileTemplate('welcome', { name, autoPassword });
+
+    await this.transporter.sendMail({
+      from: this.configService.get('mail.from'),
+      to,
+      subject: 'Welcome to our platform',
+      html,
+    });
+  }
+
+
 }

@@ -37,6 +37,7 @@ describe('AuthController', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
+        phoneNumber: '0791364384'
       };
 
       await authController.register(registerDto);

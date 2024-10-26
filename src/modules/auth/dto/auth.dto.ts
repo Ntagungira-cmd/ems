@@ -24,6 +24,11 @@ export class RegisterDto {
   @IsNotEmpty()
   lastName: string;
 
+  @ApiProperty({ example: '1234567890' })
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
+
   @ApiProperty({ example: 'user' })
   @IsOptional()
   @IsEnum(UserRole)
