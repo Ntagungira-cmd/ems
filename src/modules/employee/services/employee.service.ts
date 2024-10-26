@@ -20,7 +20,6 @@ export class EmployeesService {
     const existingEmployee = await this.employeeRepository.findOne({
       where: [
         { email: createEmployeeDto.email },
-        { employeeIdentifier: createEmployeeDto.employeeIdentifier },
       ],
     });
 
@@ -52,11 +51,10 @@ export class EmployeesService {
   ): Promise<Employee> {
     const employee = await this.findOne(id);
 
-    if (updateEmployeeDto.email || updateEmployeeDto.employeeIdentifier) {
+    if (updateEmployeeDto.email) {
       const existingEmployee = await this.employeeRepository.findOne({
         where: [
           { email: updateEmployeeDto.email },
-          { employeeIdentifier: updateEmployeeDto.employeeIdentifier },
         ],
       });
 

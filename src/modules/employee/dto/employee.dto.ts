@@ -16,17 +16,11 @@ export class CreateEmployeeDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'EMP001' })
-  @IsString()
-  @MinLength(4)
-  employeeIdentifier: string;
-
   @ApiProperty({ example: '+1234567890' })
   @IsPhoneNumber()
   phoneNumber: string;
 }
 
-// src/modules/employees/dto/update-employee.dto.ts
 import { PartialType } from '@nestjs/swagger';
 
 export class UpdateEmployeeDto extends PartialType(CreateEmployeeDto) {}

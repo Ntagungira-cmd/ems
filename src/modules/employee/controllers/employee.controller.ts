@@ -14,10 +14,13 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/employee.dto';
 import { EmployeesService } from '../services/employee.service';
 import { Employee } from '../entities/employee.entity';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { UserRole } from 'src/Enums/role.enum';
 
 @ApiTags('employees')
 @ApiBearerAuth()
@@ -26,6 +29,8 @@ import { Employee } from '../entities/employee.entity';
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post()
   @ApiOperation({ summary: 'Create new employee' })
   @ApiResponse({
@@ -73,6 +78,8 @@ export class EmployeesController {
     return this.employeesService.update(id, updateEmployeeDto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete employee' })
   @ApiResponse({ status: 200, description: 'Employee deleted successfully' })
