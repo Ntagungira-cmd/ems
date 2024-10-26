@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
 import { getTypeOrmConfig } from './config/typeorm.config';
 import configuration from './config/configuration';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { APP_GUARD } from '@nestjs/core';
+import { EmployeesModule } from './modules/employee/employee.module';
 
 @Module({
   imports: [
@@ -17,6 +20,13 @@ import configuration from './config/configuration';
       inject: [ConfigService],
     }),
     AuthModule,
+    EmployeesModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}

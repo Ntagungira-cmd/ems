@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { UserRole } from 'src/modules/Enums/role.enum';
 
 @Entity('users')
 export class User {
@@ -37,6 +38,9 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
 
   @Column({ default: true })
   isActive: boolean;
