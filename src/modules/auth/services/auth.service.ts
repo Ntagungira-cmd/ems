@@ -15,6 +15,7 @@ import {
   ResetPasswordDto,
 } from '../dto/auth.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { MailService } from 'src/modules/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<User> {
@@ -76,11 +78,16 @@ export class AuthService {
 
     await this.usersRepository.save(user);
 
-    // TODO: Send email with reset token
+    await this.mailService.sendPasswordResetEmail(
+      user.email,
+      resetToken,
+      user.firstName,
+    );
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
     const { token, password } = resetPasswordDto;
+
 
     const user = await this.usersRepository.findOne({
       where: {
@@ -88,7 +95,10 @@ export class AuthService {
       },
     });
 
-    if (!user) {
+    //compare tokens
+    const isValid = await bcrypt.compare(token, user.passwordResetToken);
+
+    if (!user || !isValid) {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
