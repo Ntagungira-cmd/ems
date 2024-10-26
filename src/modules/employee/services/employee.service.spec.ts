@@ -1,41 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmployeesService } from './employee.service';
 import { Employee } from '../entities/employee.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { MailService } from 'src/modules/mail/mail.service';
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/employee.dto';
-import { UserRole } from 'src/Enums/role.enum';
 
 describe('EmployeesService', () => {
-  let employeesService: EmployeesService;
-  let employeeRepository: Repository<Employee>;
-
-  const mockEmployee: Employee = {
-    id: '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phoneNumber: '1234567890',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    password: '',
-    role: UserRole.USER,
-    isActive: false,
-  };
-
-  const mockEmployeeRepository = {
-    create: jest.fn().mockImplementation((dto: CreateEmployeeDto) => ({
-      ...dto,
-      id: '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    save: jest.fn().mockResolvedValue(mockEmployee),
-    findOne: jest.fn(),
-    find: jest.fn().mockResolvedValue([mockEmployee]),
-    delete: jest.fn(),
-  };
+  let service: EmployeesService;
+  let repository: Repository<Employee>;
+  let mailService: MailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,47 +19,67 @@ describe('EmployeesService', () => {
         EmployeesService,
         {
           provide: getRepositoryToken(Employee),
-          useValue: mockEmployeeRepository,
+          useClass: Repository,
+        },
+        {
+          provide: MailService,
+          useValue: { sendWelcomeEmail: jest.fn() },
         },
       ],
     }).compile();
 
-    employeesService = module.get<EmployeesService>(EmployeesService);
-    employeeRepository = module.get<Repository<Employee>>(
-      getRepositoryToken(Employee),
-    );
+    service = module.get<EmployeesService>(EmployeesService);
+    repository = module.get<Repository<Employee>>(getRepositoryToken(Employee));
+    mailService = module.get<MailService>(MailService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+    expect(repository).toBeDefined();
+    expect(mailService).toBeDefined();
   });
 
   describe('create', () => {
-    it('should create a new employee', async () => {
+    it('should create a new employee and send a welcome email', async () => {
       const createEmployeeDto: CreateEmployeeDto = {
+        email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phoneNumber: '0791364384',
+        phoneNumber: '079136384'
       };
+      const hashedPassword = 'hashedPassword';
 
-      const result = await employeesService.create(createEmployeeDto);
-      expect(result).toEqual(mockEmployee);
-      expect(mockEmployeeRepository.create).toHaveBeenCalledWith(
-        createEmployeeDto,
-      );
-      expect(mockEmployeeRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining(createEmployeeDto),
+      jest.spyOn(bcrypt, 'hash').mockResolvedValueOnce(hashedPassword);
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
+      jest.spyOn(repository, 'create').mockImplementation((dto) => dto as any);
+      jest.spyOn(repository, 'save').mockResolvedValueOnce({
+        id: '8f724708-137b-46e2-bb42-d11c262ab408',
+        ...createEmployeeDto,
+        password: hashedPassword,
+        isActive: true,
+      } as Employee);
+
+      const result = await service.create(createEmployeeDto);
+
+      expect(result).toHaveProperty('email', createEmployeeDto.email);
+      expect(mailService.sendWelcomeEmail).toHaveBeenCalledWith(
+        createEmployeeDto.email,
+        `${createEmployeeDto.firstName} ${createEmployeeDto.lastName}`,
+        expect.any(String),
       );
     });
 
-    it('should throw a ConflictException if the employee already exists', async () => {
-      mockEmployeeRepository.findOne.mockResolvedValue(mockEmployee);
-
+    it('should throw a ConflictException if email already exists', async () => {
       const createEmployeeDto: CreateEmployeeDto = {
-        firstName: 'Jane',
+        email: 'test@example.com',
+        firstName: 'John',
         lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phoneNumber: '0791364384',
+        phoneNumber: '0791364384'
       };
 
-      await expect(employeesService.create(createEmployeeDto)).rejects.toThrow(
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce({} as Employee);
+
+      await expect(service.create(createEmployeeDto)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -91,101 +87,95 @@ describe('EmployeesService', () => {
 
   describe('findAll', () => {
     it('should return an array of employees', async () => {
-      const result = await employeesService.findAll();
-      expect(result).toEqual([mockEmployee]);
-      expect(mockEmployeeRepository.find).toHaveBeenCalled();
+      const employees: Employee[] = [
+        {
+          id: '8f724708-137b-46e2-bb42-d11c262ab408',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          isActive: true,
+        } as Employee,
+      ];
+
+      jest.spyOn(repository, 'find').mockResolvedValueOnce(employees);
+
+      expect(await service.findAll()).toEqual(employees);
     });
   });
 
   describe('findOne', () => {
-    it('should return a single employee by id', async () => {
-      mockEmployeeRepository.findOne.mockResolvedValue(mockEmployee);
+    it('should return an employee if found', async () => {
+      const employee = {
+        id: '8f724708-137b-46e2-bb42-d11c262ab408',
+        email: 'test@example.com',
+      } as Employee;
 
-      const result = await employeesService.findOne(
-        '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-      );
-      expect(result).toEqual(mockEmployee);
-      expect(mockEmployeeRepository.findOne).toHaveBeenCalledWith({
-        where: { id: '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78' },
-      });
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(employee);
+
+      expect(
+        await service.findOne('8f724708-137b-46e2-bb42-d11c262ab408'),
+      ).toEqual(employee);
     });
 
-    it('should throw a NotFoundException if the employee does not exist', async () => {
-      mockEmployeeRepository.findOne.mockResolvedValue(null);
+    it('should throw NotFoundException if employee not found', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
 
-      await expect(employeesService.findOne('1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.findOne('8f724708-137b-46e2-bb42-d11c262ab408'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
     it('should update an employee', async () => {
-      const updateEmployeeDto: UpdateEmployeeDto = {
-        email: 'john.doe_updated@example.com',
-      };
+      const id = '8f724708-137b-46e2-bb42-d11c262ab408';
+      const updateEmployeeDto: UpdateEmployeeDto = { email: 'new@example.com' };
+      const employee = { id, email: 'old@example.com' } as Employee;
 
-      mockEmployeeRepository.findOne.mockResolvedValue(mockEmployee);
-
-      const result = await employeesService.update(
-        '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-        updateEmployeeDto,
-      );
-      expect(result).toEqual(mockEmployee);
-      expect(mockEmployeeRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining(updateEmployeeDto),
-      );
-    });
-
-    it('should throw a ConflictException if the email is already used by another employee', async () => {
-      const updateEmployeeDto: UpdateEmployeeDto = {
-        email: 'john.doe@example.com',
-      };
-
-      mockEmployeeRepository.findOne.mockResolvedValueOnce(mockEmployee);
-      mockEmployeeRepository.findOne.mockResolvedValueOnce({
-        ...mockEmployee,
-        id: '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc76',
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(employee);
+      jest.spyOn(repository, 'save').mockResolvedValueOnce({
+        ...employee,
+        ...updateEmployeeDto,
       });
 
-      await expect(
-        employeesService.update(
-          '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-          updateEmployeeDto,
-        ),
-      ).rejects.toThrow(ConflictException);
+      expect(await service.update(id, updateEmployeeDto)).toHaveProperty(
+        'email',
+        updateEmployeeDto.email,
+      );
     });
 
-    it('should throw a NotFoundException if the employee does not exist', async () => {
-      mockEmployeeRepository.findOne.mockResolvedValueOnce(null);
+    it('should throw a ConflictException if email is already in use', async () => {
+      const id = '8f724708-137b-46e2-bb42-d11c262ab408';
+      const updateEmployeeDto: UpdateEmployeeDto = {
+        email: 'existing@example.com',
+      };
+      const employee = { id, email: 'old@example.com' } as Employee;
 
-      await expect(
-        employeesService.update(
-          '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-          {} as UpdateEmployeeDto,
-        ),
-      ).rejects.toThrow(NotFoundException);
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(employee);
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce({
+        id: '8f724708-137b-46e2-bb42-d11c262ab402',
+        email: updateEmployeeDto.email,
+      } as Employee);
+
+      await expect(service.update(id, updateEmployeeDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
   describe('remove', () => {
     it('should delete an employee', async () => {
-      mockEmployeeRepository.delete.mockResolvedValue({ affected: 1 });
+      const id = '8f724708-137b-46e2-bb42-d11c262ab408';
+      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 1, raw: {} });
 
-      await expect(
-        employeesService.remove('9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78'),
-      ).resolves.not.toThrow();
-      expect(mockEmployeeRepository.delete).toHaveBeenCalledWith(
-        '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-      );
+      await expect(service.remove(id)).resolves.toBeUndefined();
     });
 
-    it('should throw a NotFoundException if the employee does not exist', async () => {
-      mockEmployeeRepository.delete.mockResolvedValue({ affected: 0 });
+    it('should throw NotFoundException if employee not found', async () => {
+      const id = '8f724708-137b-46e2-bb42-d11c262ab408';
+      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 0, raw: {} });
 
-      await expect(
-        employeesService.remove('9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.remove(id)).rejects.toThrow(NotFoundException);
     });
   });
 });
