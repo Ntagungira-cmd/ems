@@ -10,7 +10,6 @@ import { Employee } from '../entities/employee.entity';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/employee.dto';
 import { MailService } from 'src/modules/mail/mail.service';
 
-
 @Injectable()
 export class EmployeesService {
   constructor(
@@ -64,20 +63,21 @@ export class EmployeesService {
   ): Promise<Employee> {
     const employee = await this.findOne(id);
 
-    if (updateEmployeeDto.email) {
-      const existingEmployee = await this.employeeRepository.findOne({
-        where: [{ email: updateEmployeeDto.email }],
-      });
+    const existingEmail = await this.employeeRepository.findOne({
+      where: { email: updateEmployeeDto.email },
+    });
 
-      if (existingEmployee && existingEmployee.id !== id) {
-        throw new ConflictException(
-          'Email or employee identifier already in use',
-        );
-      }
+    if (existingEmail && existingEmail.id !== id) {
+      throw new ConflictException('Email already in use');
     }
 
-    Object.assign(employee, updateEmployeeDto);
-    return this.employeeRepository.save(employee);
+    // Update the employee
+    const updatedEmployee = await this.employeeRepository.save({
+      ...employee,
+      ...updateEmployeeDto,
+    });
+
+    return updatedEmployee;
   }
 
   async remove(id: string): Promise<void> {

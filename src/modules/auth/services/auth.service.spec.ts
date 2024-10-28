@@ -1,141 +1,183 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from 'src/modules/mail/mail.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-
-// Mock repository
-const mockUserRepository = {
-  create: jest.fn(),
-  save: jest.fn(),
-  findOne: jest.fn(),
-};
-
-// Mock MailService
-const mockMailService = {
-  sendPasswordResetEmail: jest.fn(),
-};
+import { v4 as uuidv4 } from 'uuid';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { UserRole } from 'src/Enums/role.enum';
 
 describe('AuthService', () => {
-  let authService: AuthService;
+  let service: AuthService;
   let usersRepository: Repository<User>;
+  let jwtService: JwtService;
+  let mailService: MailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        JwtService,
         {
           provide: getRepositoryToken(User),
-          useValue: mockUserRepository,
+          useClass: Repository,
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn().mockReturnValue('testToken'),
+          },
         },
         {
           provide: MailService,
-          useValue: mockMailService,
+          useValue: {
+            sendPasswordResetEmail: jest.fn(),
+          },
         },
       ],
     }).compile();
 
-    authService = module.get<AuthService>(AuthService);
+    service = module.get<AuthService>(AuthService);
     usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    jwtService = module.get<JwtService>(JwtService);
+    mailService = module.get<MailService>(MailService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  describe('register', () => {
+    it('should create a new user', async () => {
+      const mockUser = {
+        email: 'test@example.com',
+        password: 'hashedPassword',
+        firstName: 'John',
+        lastName: 'Doe',
+        phoneNumber: '123456789',
+        role: UserRole.USER,
+      } as User;
 
-  it('should create a new user and return it', async () => {
-    const mockUser = {
-      id: '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-      email: 'test@test.com',
-      firstName: 'Test',
-      lastName: 'User',
-      password: 'hashedPassword',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true,
-    } as User;
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'create').mockReturnValue(mockUser);
+      jest.spyOn(usersRepository, 'save').mockResolvedValue(mockUser);
 
-    // Mocking create and save
-    mockUserRepository.create.mockReturnValue(mockUser);
-    mockUserRepository.save.mockResolvedValue(mockUser);
+      const result = await service.register({
+        email: 'test@example.com',
+        password: 'password',
+        firstName: 'John',
+        lastName: 'Doe',
+        phoneNumber: '123456789',
+        role: UserRole.USER,
+      });
 
-    const result = await authService.register({
-      email: 'test@test.com',
-      password: 'password',
-      firstName: 'Test',
-      lastName: 'User',
+      expect(usersRepository.save).toHaveBeenCalled();
+      expect(result).toEqual(mockUser);
     });
 
-    expect(result).toEqual(mockUser);
-    expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    it('should throw BadRequestException if user already exists', async () => {
+      const existingUser = { email: 'test@example.com' } as User;
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(existingUser);
+
+      await expect(
+        service.register({
+          email: 'test@example.com',
+          password: 'password',
+          firstName: 'John',
+          lastName: 'Doe',
+          phoneNumber: '123456789',
+          role: UserRole.USER,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
-  it('should generate a reset token and send email', async () => {
-    const mockUser = {
-      id: '9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78',
-      email: 'test@test.com',
-      passwordResetToken: '',
-      passwordResetExpires: null,
-    } as User;
+  describe('login', () => {
+    it('should return accessToken on valid login', async () => {
+      const mockUser = {
+        email: 'test@example.com',
+        password: await bcrypt.hash('password', 10),
+        id: '1',
+        role: 'user',
+      } as User;
 
-    // Mocking findOne and save
-    mockUserRepository.findOne.mockResolvedValue(mockUser);
-    mockUserRepository.save.mockResolvedValue(mockUser);
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
-    await authService.forgotPassword({ email: 'test@test.com' });
+      const result = await service.login({
+        email: 'test@example.com',
+        password: 'password',
+      });
 
-    expect(mockUserRepository.findOne).toHaveBeenCalledTimes(1);
-    expect(mockMailService.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
-  });
-
-  it('should throw error if reset token is invalid or expired', async () => {
-    const mockUser = {
-      passwordResetToken: 'hashedToken',
-      passwordResetExpires: new Date(Date.now() - 3600000),
-    } as User;
-
-    mockUserRepository.findOne.mockResolvedValue(mockUser);
-
-    await expect(
-      authService.resetPassword({
-        token: 'invalidToken',
-        password: 'newpassword',
-      }),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('should reset the password and clear reset fields', async () => {
-    const mockUser = {
-      id: "9ae9aedf-82ee-40ae-9e24-f7ad58f8fc78",
-      email: 'test@test.com',
-      passwordResetToken: await bcrypt.hash('validToken', 10),
-      passwordResetExpires: new Date(Date.now() + 3600000),
-    } as User;
-
-    
-    mockUserRepository.findOne.mockResolvedValue(mockUser);
-    mockUserRepository.save.mockResolvedValue(mockUser);
-
-  
-    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
-
-    await authService.resetPassword({
-      token: 'validToken',
-      password: 'newpassword',
+      expect(result).toEqual({ accessToken: 'testToken' });
     });
 
+    it('should throw UnauthorizedException on invalid login', async () => {
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(null);
 
-    expect(mockUserRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        passwordResetToken: null,
-        passwordResetExpires: null,
-      }),
-    );
+      await expect(
+        service.login({ email: 'wrong@example.com', password: 'password' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should send a password reset email', async () => {
+      const mockUser = {
+        email: 'test@example.com',
+        firstName: 'John',
+      } as User;
+
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(usersRepository, 'save').mockResolvedValue(mockUser);
+
+      await service.forgotPassword({ email: 'test@example.com' });
+
+      expect(mailService.sendPasswordResetEmail).toHaveBeenCalled();
+      expect(usersRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          passwordResetToken: expect.any(String),
+          passwordResetExpires: expect.any(Date),
+        }),
+      );
+    });
+
+    it('should throw BadRequestException if user is not found', async () => {
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.forgotPassword({ email: 'notfound@example.com' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset the user password', async () => {
+      const mockUser = {
+        email: 'test@example.com',
+        passwordResetToken: await bcrypt.hash('token', 10),
+        passwordResetExpires: new Date(Date.now() + 3600000),
+      } as User;
+
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      jest.spyOn(usersRepository, 'save').mockResolvedValue(mockUser);
+
+      await service.resetPassword({ token: 'token', password: 'newPassword' });
+
+      expect(usersRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          password: expect.any(String),
+          passwordResetToken: null,
+          passwordResetExpires: null,
+        }),
+      );
+    });
+
+    it('should throw BadRequestException if token is invalid or expired', async () => {
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.resetPassword({ token: 'wrongToken', password: 'password' }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });
