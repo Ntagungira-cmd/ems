@@ -45,7 +45,7 @@ describe('EmployeesService', () => {
         email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
-        phoneNumber: '079136384'
+        phoneNumber: '079136384',
       };
       const hashedPassword = 'hashedPassword';
 
@@ -74,7 +74,7 @@ describe('EmployeesService', () => {
         email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
-        phoneNumber: '0791364384'
+        phoneNumber: '0791364384',
       };
 
       jest.spyOn(repository, 'findOne').mockResolvedValueOnce({} as Employee);
@@ -131,17 +131,21 @@ describe('EmployeesService', () => {
       const id = '8f724708-137b-46e2-bb42-d11c262ab408';
       const updateEmployeeDto: UpdateEmployeeDto = { email: 'new@example.com' };
       const employee = { id, email: 'old@example.com' } as Employee;
-
       jest.spyOn(service, 'findOne').mockResolvedValueOnce(employee);
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
+
       jest.spyOn(repository, 'save').mockResolvedValueOnce({
         ...employee,
         ...updateEmployeeDto,
       });
 
-      expect(await service.update(id, updateEmployeeDto)).toHaveProperty(
-        'email',
-        updateEmployeeDto.email,
-      );
+      const result = await service.update(id, updateEmployeeDto);
+
+      expect(result).toHaveProperty('email', updateEmployeeDto.email);
+      expect(repository.save).toHaveBeenCalledWith({
+        ...employee,
+        ...updateEmployeeDto,
+      });
     });
 
     it('should throw a ConflictException if email is already in use', async () => {
@@ -150,7 +154,6 @@ describe('EmployeesService', () => {
         email: 'existing@example.com',
       };
       const employee = { id, email: 'old@example.com' } as Employee;
-
       jest.spyOn(service, 'findOne').mockResolvedValueOnce(employee);
       jest.spyOn(repository, 'findOne').mockResolvedValueOnce({
         id: '8f724708-137b-46e2-bb42-d11c262ab402',
@@ -166,14 +169,18 @@ describe('EmployeesService', () => {
   describe('remove', () => {
     it('should delete an employee', async () => {
       const id = '8f724708-137b-46e2-bb42-d11c262ab408';
-      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 1, raw: {} });
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 1, raw: {} });
 
       await expect(service.remove(id)).resolves.toBeUndefined();
     });
 
     it('should throw NotFoundException if employee not found', async () => {
       const id = '8f724708-137b-46e2-bb42-d11c262ab408';
-      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 0, raw: {} });
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 0, raw: {} });
 
       await expect(service.remove(id)).rejects.toThrow(NotFoundException);
     });
