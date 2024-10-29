@@ -33,7 +33,7 @@ JWT_SECRET=
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USER=<use your gmail>
-MAIL_PASSWORD=<use your google app password
+MAIL_PASSWORD=<use your google app password>
 MAIL_FROM=
 
 # OpenAI
