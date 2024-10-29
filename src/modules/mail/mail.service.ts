@@ -64,5 +64,16 @@ export class MailService {
     });
   }
 
+  async sendMail(data: { to: string; subject: string; template: string; context: any }): Promise<void> {
+    const html = await this.compileTemplate(data.template, data.context);
+
+    await this.transporter.sendMail({
+      from: this.configService.get('mail.from'),
+      to: data.to,
+      subject: data.subject,
+      html,
+    });
+  }
+
 
 }

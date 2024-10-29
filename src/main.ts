@@ -11,6 +11,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('auth')
     .addTag('employees')
+    .addTag('attendance')
     .addBearerAuth()
     .build();
 
