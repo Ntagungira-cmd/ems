@@ -7,6 +7,9 @@ import configuration from './config/configuration';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { EmployeesModule } from './modules/employee/employee.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
+import { QueuesModule } from './queues/queues.module';
+import { OpenaiModule } from './modules/openai/openai.module';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { EmployeesModule } from './modules/employee/employee.module';
     }),
     AuthModule,
     EmployeesModule,
+    AttendanceModule,
+    QueuesModule,
+    OpenaiModule,
   ],
   providers: [
     {
