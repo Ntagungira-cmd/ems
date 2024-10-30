@@ -9,7 +9,7 @@ import { Attendance } from '../entities/attendance.entity';
 import { endOfDay, startOfDay } from 'date-fns';
 import { EmployeesService } from 'src/modules/employee/services/employee.service';
 import { RecordAttendanceDto } from '../dto/attendance.dto';
-import { MailQueue } from 'src/queues/mail.queue';
+import { MailQueue } from 'src/common/queues/mail.queue';
 
 @Injectable()
 export class AttendanceService {

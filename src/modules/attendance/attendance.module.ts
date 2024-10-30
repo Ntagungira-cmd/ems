@@ -5,8 +5,8 @@ import { Attendance } from './entities/attendance.entity';
 import { BullModule } from '@nestjs/bull';
 import { EmployeesModule } from '../employee/employee.module';
 import { AttendanceController } from './controllers/attendance.cotroller';
-import { MailQueue } from 'src/queues/mail.queue';
-import { QueuesModule } from 'src/queues/queues.module';
+import { MailQueue } from 'src/common/queues/mail.queue';
+import { QueuesModule } from 'src/common/queues/queues.module';
 
 @Module({
   imports: [

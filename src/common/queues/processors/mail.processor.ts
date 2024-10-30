@@ -1,6 +1,6 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
-import { MailService } from '../../modules/mail/mail.service';
+import { MailService } from '../../../modules/mail/mail.service';
 import { Logger } from '@nestjs/common';
 import { OpenAIService } from 'src/modules/openai/openai.service';
 
@@ -18,7 +18,6 @@ export class MailProcessor {
     const { employee, attendance } = job.data;
 
     try {
-
       const prompt = `Generate a friendly email message for ${employee.name} acknowledging their check-in at ${attendance.checkIn}. Include a positive greeting and a brief motivational message for the day.`;
 
       const aiGeneratedMessage = await this.openAIService.generateText(prompt);

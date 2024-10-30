@@ -8,7 +8,7 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { UserRole } from 'src/Enums/role.enum';
+import { UserRole } from 'src/common/Enums/role.enum';
 
 describe('AuthService', () => {
   let service: AuthService;
