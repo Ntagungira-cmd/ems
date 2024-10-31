@@ -25,6 +25,7 @@ export class ReportService {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // get attendance records for the specified date
     const attendanceRecords = await this.attendanceRepository.find({
       where: {
         checkIn: Between(startOfDay, endOfDay),
@@ -47,7 +48,7 @@ export class ReportService {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    // Add title
+    // Title
     doc.setFontSize(16);
     doc.text(
       `Daily Attendance Report - ${date.toLocaleDateString()}`,
@@ -56,29 +57,32 @@ export class ReportService {
       { align: 'center' },
     );
 
-    // Add table headers
+    // set headers
     doc.setFontSize(12);
     const headers = [
-      'Employee ID',
-      'Name',
-      'Check-In Time',
-      'Check-Out Time',
+      'Employee Email',
+      'Full name',
+      'Check-In',
+      'Check-Out',
       'Hours Worked',
     ];
     let y = 40;
     const rowHeight = 10;
 
+    const columnWidths = [70, 40, 35, 35, 35];
+
+    let x = 20; // starting left position
     headers.forEach((header, i) => {
-      doc.text(header, 20 + i * 35, y);
+      doc.text(header, x, y);
+      x += columnWidths[i]; // map width to each column
     });
 
     y += rowHeight;
 
-    // Add table data
     doc.setFontSize(10);
     attendanceRecords.forEach((record) => {
       if (y > 270) {
-        // Check if we need a new page
+        // add new page if content exceeds the page height
         doc.addPage();
         y = 20;
       }
@@ -91,15 +95,17 @@ export class ReportService {
         : 'N/A';
 
       const row = [
-        record.employee.id,
+        record.employee.email,
         `${record.employee.firstName} ${record.employee.lastName}`,
         record.checkIn.toLocaleTimeString(),
         record.checkOut ? record.checkOut.toLocaleTimeString() : 'N/A',
         hoursWorked,
       ];
 
+      x = 20; // reset x position for each row
       row.forEach((cell, i) => {
-        doc.text(String(cell), 20 + i * 35, y);
+        doc.text(String(cell), x, y);
+        x += columnWidths[i];
       });
 
       y += rowHeight;
@@ -115,24 +121,24 @@ export class ReportService {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Daily Attendance');
 
-    // Add title
+    // title
     worksheet.mergeCells('A1:E1');
     worksheet.getCell('A1').value =
       `Daily Attendance Report - ${date.toLocaleDateString()}`;
     worksheet.getCell('A1').font = { size: 16, bold: true };
     worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-    // Add headers
+    // headers
     worksheet.addRow([
-      'Employee ID',
-      'Name',
+      'Employee email',
+      'Full name',
       'Check-In Time',
       'Check-Out Time',
       'Hours Worked',
     ]);
     worksheet.getRow(2).font = { bold: true };
 
-    // Add data
+    // attendance data
     attendanceRecords.forEach((record) => {
       const hoursWorked = record.checkOut
         ? (
@@ -142,7 +148,7 @@ export class ReportService {
         : 'N/A';
 
       worksheet.addRow([
-        record.employee.id,
+        record.employee.email,
         `${record.employee.firstName} ${record.employee.lastName}`,
         record.checkIn.toLocaleTimeString(),
         record.checkOut ? record.checkOut.toLocaleTimeString() : 'N/A',
@@ -150,7 +156,6 @@ export class ReportService {
       ]);
     });
 
-    // Style the worksheet
     worksheet.columns.forEach((column) => {
       column.width = 20;
       column.alignment = { horizontal: 'left' };

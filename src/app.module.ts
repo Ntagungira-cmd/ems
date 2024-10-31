@@ -11,6 +11,8 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { QueuesModule } from './common/queues/queues.module';
 import { OpenaiModule } from './modules/openai/openai.module';
 import { ReportModule } from './modules/report/report.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { ReportModule } from './modules/report/report.module';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    AppService,
   ],
+  controllers: [AppController]
 })
 export class AppModule {}

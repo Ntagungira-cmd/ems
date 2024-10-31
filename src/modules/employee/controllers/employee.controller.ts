@@ -20,7 +20,7 @@ import { EmployeesService } from '../services/employee.service';
 import { Employee } from '../entities/employee.entity';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
-import { UserRole } from 'src/common/Enums/role.enum';
+import { UserRole } from 'src/common/enums/role.enum';
 
 @ApiTags('employees')
 @ApiBearerAuth()
