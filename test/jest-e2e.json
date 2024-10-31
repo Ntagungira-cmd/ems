@@ -6,9 +6,7 @@
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/src/$1"
   },
-  "collectCoverage": true,
-  "coverageDirectory": "coverage/e2e",
-  "coverageReporters": ["text", "lcov"],
+  "collectCoverage": false,
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": "../",
   "testTimeout": 30000,
