@@ -3,7 +3,7 @@ import { EmployeesService } from '../services/employee.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/employee.dto';
 import { Employee } from '../entities/employee.entity';
 import { HttpException } from '@nestjs/common';
-import { UserRole } from 'src/Enums/role.enum';
+import { UserRole } from 'src/common/enums/role.enum';
 import { EmployeesController } from './employee.controller';
 
 describe('EmployeesController', () => {

@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Get, Query, UseGuards } from '@nestjs/common';
 import { AttendanceService } from '../services/attendance.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RecordAttendanceDto } from '../dto/attendance.dto';
 import { Attendance } from '../entities/attendance.entity';
 
@@ -13,7 +13,11 @@ export class AttendanceController {
 
   @Post('record')
   @ApiOperation({ summary: 'Record attendance (check-in/check-out)' })
-  @ApiResponse({ status: 201, description: 'Attendance recorded successfully', type:Attendance })
+  @ApiResponse({
+    status: 201,
+    description: 'Attendance recorded successfully',
+    type: Attendance,
+  })
   async recordAttendance(@Body() recordAttendanceDto: RecordAttendanceDto) {
     return this.attendanceService.recordAttendance(recordAttendanceDto);
   }

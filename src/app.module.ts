@@ -4,12 +4,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
 import { getTypeOrmConfig } from './config/typeorm.config';
 import configuration from './config/configuration';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { EmployeesModule } from './modules/employee/employee.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
-import { QueuesModule } from './queues/queues.module';
+import { QueuesModule } from './common/queues/queues.module';
 import { OpenaiModule } from './modules/openai/openai.module';
+import { ReportModule } from './modules/report/report.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -27,12 +30,15 @@ import { OpenaiModule } from './modules/openai/openai.module';
     AttendanceModule,
     QueuesModule,
     OpenaiModule,
+    ReportModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    AppService,
   ],
+  controllers: [AppController]
 })
 export class AppModule {}

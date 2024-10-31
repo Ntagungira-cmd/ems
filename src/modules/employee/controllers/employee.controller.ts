@@ -14,13 +14,13 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/employee.dto';
 import { EmployeesService } from '../services/employee.service';
 import { Employee } from '../entities/employee.entity';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
-import { UserRole } from 'src/Enums/role.enum';
+import { UserRole } from 'src/common/enums/role.enum';
 
 @ApiTags('employees')
 @ApiBearerAuth()

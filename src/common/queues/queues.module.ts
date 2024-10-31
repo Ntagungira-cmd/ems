@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MailQueue } from './mail.queue';
 import { MailProcessor } from './processors/mail.processor';
-import { MailModule } from '../modules/mail/mail.module';
+import { MailModule } from '../../modules/mail/mail.module';
 import { OpenaiModule } from 'src/modules/openai/openai.module';
 
 @Module({

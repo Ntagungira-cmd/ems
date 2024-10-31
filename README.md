@@ -1,12 +1,42 @@
 
 
 ## Description
-
 ## EMS
+```bash
+ Employee management system made with Nest js.
 ```
-Employee management system made with Nest js.
+## Structure
+```bash
+src/
+├───common
+│   ├───enums
+│   ├───guards
+│   ├───pipes
+│   └───queues
+│       └───processors
+├───config
+└───modules
+    ├───attendance
+    │   ├───controllers
+    │   ├───dto
+    │   ├───entities
+    │   └───services
+    ├───auth
+    │   ├───controllers
+    │   ├───decorators
+    │   ├───dto
+    │   ├───entities
+    │   ├───services
+    │   └───strategies
+    ├───employee
+    │   ├───controllers
+    │   ├───dto
+    │   ├───entities
+    │   └───services
+    ├───mail
+    ├───openai
+    └───report
 ```
-
 ## Project setup
 
 ```bash
@@ -70,4 +100,8 @@ $ npm run test
 # test coverage
 $ npm run test:cov
 ```
+
+## Api Documentation
+
+[http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 

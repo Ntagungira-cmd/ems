@@ -9,7 +9,7 @@ import { Attendance } from '../entities/attendance.entity';
 import { endOfDay, startOfDay } from 'date-fns';
 import { EmployeesService } from 'src/modules/employee/services/employee.service';
 import { RecordAttendanceDto } from '../dto/attendance.dto';
-import { MailQueue } from 'src/queues/mail.queue';
+import { MailQueue } from 'src/common/queues/mail.queue';
 
 @Injectable()
 export class AttendanceService {
@@ -51,7 +51,7 @@ export class AttendanceService {
       const savedAttendance =
         await this.attendanceRepository.save(latestAttendance);
 
-      // Queue email notification
+      // queue email notification
       await this.mailQueue.add('attendance-checkout', {
         employee,
         attendance: savedAttendance,
@@ -66,7 +66,7 @@ export class AttendanceService {
       throw new BadRequestException('Employee already checked in');
     }
 
-    // Create new attendance record
+    // create new attendance record
     const attendance = this.attendanceRepository.create({
       employee,
       checkIn: new Date(),
